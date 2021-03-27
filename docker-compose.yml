@@ -1,0 +1,53 @@
+---
+version: "3.7"
+services:
+  gluetun:
+    image: qmcgaw/gluetun
+    container_name: gluetun
+    cap_add:
+      - NET_ADMIN
+    network_mode: bridge
+    ports:
+      - 8888:8888/tcp # HTTP proxy
+      - 8388:8388/tcp # Shadowsocks
+      - 8388:8388/udp # Shadowsocks
+      - 8000:8000/tcp # Built-in HTTP control server
+      - 6881:6881
+      - 6881:6881/udp
+      - 8080:8080    
+    # command:
+    volumes:
+      - /yourpath/config:/gluetun
+    environment:
+      # More variables are available, see the readme table
+      - VPNSP=nordvpn
+      - OPENVPN_USER=
+      - OPENVPN_PASSWORD=
+      - REGION=United States      
+      # Timezone for accurate logs times
+      - TZ=Americ/Vancouver
+    restart: always
+
+  Qbittorrent:
+    depends_on:
+      - gluetun
+    container_name: qbittorrent
+    environment:
+      TZ: "America/Vancouver"
+      PGID: "0"
+      PUID: "0"
+    image: linuxserver/qbittorrent
+    restart: unless-stopped
+    userns_mode: host
+    # Do not apply any networking configs
+    # on this container!
+    # All networking labels and settings should be defined
+    # on the vpn container.
+    network_mode: service:gluetun
+    volumes:
+      - /yourpath/config/:/config
+      - /yourpath:/downloads
+networks:
+  internet:
+  proxy:
+    internal: true
